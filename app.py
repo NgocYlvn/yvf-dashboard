@@ -20,7 +20,7 @@ st.set_page_config(
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_FILE = BASE_DIR / "YVF_PowerBI_Ready.xlsx"
-ASSET_DIR = BASE_DIR / "assets"
+ASSET_DIR = BASE_DIR
 
 NAVY = "#07376E"
 DARK_NAVY = "#052A59"
