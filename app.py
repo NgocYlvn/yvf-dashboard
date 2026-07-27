@@ -19,7 +19,7 @@ st.set_page_config(
 )
 
 BASE_DIR = Path(__file__).resolve().parent
-DATA_FILE = BASE_DIR / "data" / "YVF_PowerBI_Ready.xlsx"
+DATA_FILE = BASE_DIR / "YVF_PowerBI_Ready.xlsx"
 ASSET_DIR = BASE_DIR / "assets"
 
 NAVY = "#07376E"
