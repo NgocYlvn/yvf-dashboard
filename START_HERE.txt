@@ -1,0 +1,18 @@
+YVF MANAGEMENT DASHBOARD - QUICK START
+
+1. Extract the ZIP file completely.
+2. Open the extracted YVF_Dashboard_Final folder.
+3. Double-click RUN_DASHBOARD.bat.
+4. The first run installs required libraries and may take 2-5 minutes.
+5. The dashboard opens at http://localhost:8501.
+6. To stop it, return to the black window and press Ctrl+C.
+
+UPDATE DATA
+- Use Upload Excel in the left sidebar; or
+- Replace data\YVF_PowerBI_Ready.xlsx with a new file of the same structure.
+
+Required sheets:
+- Data_Booking
+- Data_SI
+- Data_Issue
+- Customer_Feedback
