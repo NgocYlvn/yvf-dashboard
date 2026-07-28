@@ -452,7 +452,6 @@ if page == "1. Overview":
     show_title(
         "YVF Adoption Dashboard – CS HAD",
         "Executive Overview.",
-        "Key Performance Indicators.",
     )
 
     # Most important KPIs first
