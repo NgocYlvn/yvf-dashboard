@@ -12,15 +12,26 @@ import streamlit as st
 from streamlit_option_menu import option_menu
 
 st.set_page_config(
-    page_title="YVF Management Dashboard",
+    page_title="YVF Adoption Dashboard – CS HAD",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 BASE_DIR = Path(__file__).resolve().parent
-DATA_FILE = BASE_DIR / "YVF_PowerBI_Ready.xlsx"
-ASSET_DIR = BASE_DIR
+
+def first_existing(*paths: Path) -> Path:
+    """Return the first existing path; otherwise return the first candidate."""
+    for path in paths:
+        if path.exists():
+            return path
+    return paths[0]
+
+DATA_FILE = first_existing(
+    BASE_DIR / "data" / "YVF_PowerBI_Ready.xlsx",
+    BASE_DIR / "YVF_PowerBI_Ready.xlsx",
+)
+ASSET_DIR = BASE_DIR / "assets" if (BASE_DIR / "assets").exists() else BASE_DIR
 
 NAVY = "#07376E"
 DARK_NAVY = "#052A59"
@@ -163,8 +174,24 @@ with st.sidebar:
     st.markdown(f'<div class="sidebar-logo"><img src="{LOGO_URI}" alt="Yusen Logistics"></div>', unsafe_allow_html=True)
     page = option_menu(
         menu_title=None,
-        options=["Overview", "Booking & SI", "SI Submission", "Issues", "Customer Feedback", "Raw Data"],
-        icons=["speedometer2", "clipboard-data", "file-earmark-text", "exclamation-triangle", "star", "table"],
+        options=[
+            "Overview",
+            "Booking",
+            "SI Submission",
+            "YVF User Issues",
+            "YVF Enhancement Requests",
+            "Customer Feedback",
+            "Raw Data",
+        ],
+        icons=[
+            "speedometer2",
+            "clipboard-data",
+            "file-earmark-text",
+            "exclamation-triangle",
+            "lightbulb",
+            "star",
+            "table",
+        ],
         default_index=0,
         styles={
             "container": {"padding": "0", "background-color": "transparent"},
@@ -211,19 +238,147 @@ with st.sidebar:
 booking_f = apply_filters(booking, selected_customers, selected_modes, selected_statuses, date_range)
 si_f = apply_filters(si, selected_customers, selected_modes, selected_statuses, date_range)
 
-st.markdown(f'''<div class="dashboard-header"><div><div class="main-title">YVF MANAGEMENT DASHBOARD</div>
-<div class="sub-title">Overview of YVF System Performance</div></div>
+st.markdown(f'''<div class="dashboard-header"><div><div class="main-title">YVF ADOPTION DASHBOARD – CS HAD</div>
+<div class="sub-title">Customer Adoption &amp; Usage Monitoring</div></div>
 <div class="report-time">▣&nbsp;&nbsp;{datetime.now():%d/%m/%Y %H:%M}</div></div>''', unsafe_allow_html=True)
 
 booking_total = int(safe_num(booking_f.get("Booking Qty", pd.Series(dtype=float))).sum())
 si_total = int(safe_num(si_f.get("SI Qty", pd.Series(dtype=float))).sum())
-issue_total = len(issues)
+
+# ------------------------------------------------------------------
+# Adoption KPIs
+# ------------------------------------------------------------------
+all_known_customers = sorted(
+    set(booking.get("Customer", pd.Series(dtype=str)).dropna().astype(str))
+    | set(si.get("Customer", pd.Series(dtype=str)).dropna().astype(str))
+)
+active_customers = sorted(
+    set(booking_f.get("Customer", pd.Series(dtype=str)).dropna().astype(str))
+    | set(si_f.get("Customer", pd.Series(dtype=str)).dropna().astype(str))
+)
+customer_adoption_rate = (
+    len(active_customers) / len(all_known_customers) * 100
+    if all_known_customers else 0
+)
+
+# If a Channel/Source column is added later, the KPI will calculate automatically.
+# With the current YVF-only source file, all booking records are treated as YVF bookings.
+channel_col = next(
+    (c for c in ["Booking Channel", "Channel", "Source", "Platform"] if c in booking_f.columns),
+    None,
+)
+if channel_col and not booking_f.empty:
+    booking_qty = safe_num(booking_f.get("Booking Qty", pd.Series(index=booking_f.index, dtype=float)))
+    via_yvf_mask = booking_f[channel_col].astype(str).str.contains("YVF", case=False, na=False)
+    yvf_booking_qty = float(booking_qty[via_yvf_mask].sum())
+    total_booking_qty = float(booking_qty.sum())
+    booking_via_yvf_rate = yvf_booking_qty / total_booking_qty * 100 if total_booking_qty else 0
+else:
+    booking_via_yvf_rate = 100.0 if booking_total else 0.0
+
+# ------------------------------------------------------------------
+# Separate user issues from enhancement requests
+# Notes/remarks from operational raw data are moved into the user issue view.
+# ------------------------------------------------------------------
+issue_rows = []
+for source_name, frame in [("Booking", booking_f), ("SI Submission", si_f)]:
+    if frame.empty:
+        continue
+    for _, row in frame.iterrows():
+        system_issue = str(row.get("System Issue", "")).strip()
+        note = "" if pd.isna(row.get("Remark")) else str(row.get("Remark")).strip()
+        has_issue = system_issue.lower() in {"yes", "y", "true", "1"} or bool(note)
+        if has_issue:
+            issue_rows.append(
+                {
+                    "Date": row.get("Booking Date", ""),
+                    "Customer": row.get("Customer", ""),
+                    "Module": source_name,
+                    "Issue": note or "System issue reported",
+                    "Note": note,
+                    "PIC": row.get("PIC", ""),
+                    "Status": row.get("Status", ""),
+                }
+            )
+
+user_issues = pd.DataFrame(
+    issue_rows,
+    columns=["Date", "Customer", "Module", "Issue", "Note", "PIC", "Status"],
+)
+if not user_issues.empty:
+    user_issues["Date"] = pd.to_datetime(user_issues["Date"], errors="coerce").dt.strftime("%d/%m/%Y")
+
+enhancement_requests = issues.copy()
+if not enhancement_requests.empty:
+    enhancement_requests = enhancement_requests.rename(
+        columns={"Suggestion": "Enhancement Request"}
+    )
+
+issue_total = len(user_issues)
+enhancement_total = len(enhancement_requests)
 
 if page == "Overview":
-    c1, c2, c3 = st.columns(3)
-    with c1: st.markdown(kpi("TOTAL BOOKINGS", f"{booking_total:,}", BOOKING_ICON, BLUE, "#EAF3FC", f"{len(booking_f):,} booking records"), unsafe_allow_html=True)
-    with c2: st.markdown(kpi("TOTAL SI SUBMISSIONS", f"{si_total:,}", SI_ICON, ORANGE, "#FFF0E2", f"{len(si_f):,} SI records"), unsafe_allow_html=True)
-    with c3: st.markdown(kpi("TOTAL ISSUES", f"{issue_total:,}", ISSUE_ICON, RED, "#FDE9E7", "Items in issue list"), unsafe_allow_html=True)
+    c1, c2, c3, c4, c5 = st.columns(5)
+    with c1:
+        st.markdown(
+            kpi(
+                "CUSTOMER ADOPTION RATE",
+                f"{customer_adoption_rate:.0f}%",
+                BOOKING_ICON,
+                BLUE,
+                "#EAF3FC",
+                f"{len(active_customers)}/{len(all_known_customers)} customers",
+            ),
+            unsafe_allow_html=True,
+        )
+    with c2:
+        st.markdown(
+            kpi(
+                "ACTIVE CUSTOMERS",
+                f"{len(active_customers):,}",
+                BOOKING_ICON,
+                GREEN,
+                "#EAF8EF",
+                "Customers with activity",
+            ),
+            unsafe_allow_html=True,
+        )
+    with c3:
+        st.markdown(
+            kpi(
+                "BOOKING VIA YVF %",
+                f"{booking_via_yvf_rate:.0f}%",
+                BOOKING_ICON,
+                ORANGE,
+                "#FFF0E2",
+                f"{booking_total:,} bookings in scope",
+            ),
+            unsafe_allow_html=True,
+        )
+    with c4:
+        st.markdown(
+            kpi(
+                "YVF ENHANCEMENT REQUESTS",
+                f"{enhancement_total:,}",
+                SI_ICON,
+                NAVY,
+                "#EAF0F7",
+                "Improvement requests",
+            ),
+            unsafe_allow_html=True,
+        )
+    with c5:
+        st.markdown(
+            kpi(
+                "YVF USER ISSUES",
+                f"{issue_total:,}",
+                ISSUE_ICON,
+                RED,
+                "#FDE9E7",
+                "Reported user issues",
+            ),
+            unsafe_allow_html=True,
+        )
     st.write("")
 
     left_col, right_col = st.columns([1.08, .92])
@@ -257,10 +412,26 @@ if page == "Overview":
     st.write("")
     b1,b2,b3=st.columns([1.07,1,1.02])
     with b1:
-        issue_cols=[c for c in ["Module","Suggestion"] if c in issues.columns]
-        issue_view=issues[issue_cols].copy() if issue_cols else pd.DataFrame(columns=["Module","Suggestion / Improvement"])
-        if len(issue_view.columns)==2: issue_view.columns=["Module","Suggestion / Improvement"]
-        st.markdown('<div class="panel"><div class="panel-title orange">ISSUE LIST</div>'+html_table(issue_view,left=set(issue_view.columns),orange_header=True)+'</div>',unsafe_allow_html=True)
+        enhancement_cols = [
+            c for c in ["Module", "Enhancement Request"]
+            if c in enhancement_requests.columns
+        ]
+        enhancement_view = (
+            enhancement_requests[enhancement_cols].copy()
+            if enhancement_cols
+            else pd.DataFrame(columns=["Module", "Enhancement Request"])
+        )
+        st.markdown(
+            '<div class="panel"><div class="panel-title orange">'
+            'YVF ENHANCEMENT REQUESTS</div>'
+            + html_table(
+                enhancement_view,
+                left=set(enhancement_view.columns),
+                orange_header=True,
+            )
+            + '</div>',
+            unsafe_allow_html=True,
+        )
     with b2:
         if feedback.empty or "Feedback" not in feedback.columns: fb=pd.DataFrame(columns=["Feedback","Count"])
         else:
@@ -276,23 +447,77 @@ if page == "Overview":
         fig.update_layout(height=252,margin=dict(l=3,r=3,t=2,b=2),showlegend=True,legend=dict(orientation="v",x=.72,y=.74,font=dict(size=11)),paper_bgcolor="white",annotations=[dict(text=f"<b>{total}</b><br>Total",x=.29,y=.5,font_size=18,showarrow=False)])
         st.markdown('<div class="panel"><div class="panel-title">STATUS OVERVIEW</div>',unsafe_allow_html=True); st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False}); st.markdown('</div>',unsafe_allow_html=True)
 
-elif page == "Booking & SI":
-    st.markdown('<div class="panel"><div class="panel-title">BOOKING DETAIL</div></div>', unsafe_allow_html=True)
-    st.dataframe(booking_f, use_container_width=True, hide_index=True, height=310)
-    st.markdown('<div class="panel"><div class="panel-title">SI DETAIL</div></div>', unsafe_allow_html=True)
-    st.dataframe(si_f, use_container_width=True, hide_index=True, height=310)
-elif page == "SI Submission":
-    st.markdown('<div class="panel"><div class="panel-title">SI SUBMISSION</div></div>', unsafe_allow_html=True)
-    st.dataframe(si_f, use_container_width=True, hide_index=True, height=620)
-elif page == "Issues":
-    st.markdown('<div class="panel"><div class="panel-title orange">ISSUE & IMPROVEMENT LIST</div></div>', unsafe_allow_html=True)
-    st.dataframe(issues, use_container_width=True, hide_index=True, height=620)
-elif page == "Customer Feedback":
-    st.markdown('<div class="panel"><div class="panel-title">CUSTOMER FEEDBACK</div></div>', unsafe_allow_html=True)
-    st.dataframe(feedback, use_container_width=True, hide_index=True, height=620)
-else:
-    tabs=st.tabs(["Data_Booking","Data_SI","Data_Issue","Customer_Feedback"])
-    for tab,(name,frame) in zip(tabs,data.items()):
-        with tab: st.dataframe(frame,use_container_width=True,hide_index=True,height=570)
+elif page == "Booking":
+    st.markdown(
+        '<div class="panel"><div class="panel-title">BOOKING DETAIL</div></div>',
+        unsafe_allow_html=True,
+    )
+    st.dataframe(booking_f, use_container_width=True, hide_index=True, height=620)
 
-st.markdown('<div class="footer-yvf">YVF Dashboard | Confidential &amp; Internal Use Only</div>', unsafe_allow_html=True)
+elif page == "SI Submission":
+    st.markdown(
+        '<div class="panel"><div class="panel-title">SI SUBMISSION</div></div>',
+        unsafe_allow_html=True,
+    )
+    st.dataframe(si_f, use_container_width=True, hide_index=True, height=620)
+
+elif page == "YVF User Issues":
+    st.markdown(
+        '<div class="panel"><div class="panel-title orange">'
+        'YVF USER ISSUES</div></div>',
+        unsafe_allow_html=True,
+    )
+    st.caption(
+        "Các ghi chú/Remark phát sinh trong dữ liệu Booking và SI "
+        "được tập hợp tại đây để theo dõi như YVF User Issues."
+    )
+    st.dataframe(
+        user_issues,
+        use_container_width=True,
+        hide_index=True,
+        height=620,
+    )
+
+elif page == "YVF Enhancement Requests":
+    st.markdown(
+        '<div class="panel"><div class="panel-title">'
+        'YVF ENHANCEMENT REQUESTS</div></div>',
+        unsafe_allow_html=True,
+    )
+    st.dataframe(
+        enhancement_requests,
+        use_container_width=True,
+        hide_index=True,
+        height=620,
+    )
+
+elif page == "Customer Feedback":
+    st.markdown(
+        '<div class="panel"><div class="panel-title">'
+        'CUSTOMER FEEDBACK</div></div>',
+        unsafe_allow_html=True,
+    )
+    st.dataframe(feedback, use_container_width=True, hide_index=True, height=620)
+
+else:
+    # Remark/Note columns are intentionally excluded from Raw Data because
+    # they are shown under YVF User Issues.
+    booking_raw = booking.drop(columns=["Remark"], errors="ignore")
+    si_raw = si.drop(columns=["Remark"], errors="ignore")
+    raw_frames = {
+        "Data_Booking": booking_raw,
+        "Data_SI": si_raw,
+        "Data_Issue": enhancement_requests,
+        "Customer_Feedback": feedback,
+    }
+    tabs = st.tabs(list(raw_frames.keys()))
+    for tab, (name, frame) in zip(tabs, raw_frames.items()):
+        with tab:
+            st.dataframe(
+                frame,
+                use_container_width=True,
+                hide_index=True,
+                height=570,
+            )
+
+st.markdown('<div class="footer-yvf">YVF Adoption Dashboard – CS HAD | Confidential &amp; Internal Use Only</div>', unsafe_allow_html=True)
