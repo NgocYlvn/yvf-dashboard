@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 import base64
@@ -19,26 +20,20 @@ st.set_page_config(
 )
 
 BASE_DIR = Path(__file__).resolve().parent
-
-def first_existing(*paths: Path) -> Path:
-    """Return the first existing path; otherwise return the first candidate."""
-    for path in paths:
-        if path.exists():
-            return path
-    return paths[0]
-
-DATA_FILE = first_existing(
-    BASE_DIR / "data" / "YVF_PowerBI_Ready.xlsx",
-    BASE_DIR / "YVF_PowerBI_Ready.xlsx",
+DATA_FILE = (
+    BASE_DIR / "data" / "YVF_PowerBI_Ready.xlsx"
+    if (BASE_DIR / "data" / "YVF_PowerBI_Ready.xlsx").exists()
+    else BASE_DIR / "YVF_PowerBI_Ready.xlsx"
 )
 ASSET_DIR = BASE_DIR / "assets" if (BASE_DIR / "assets").exists() else BASE_DIR
 
 NAVY = "#07376E"
 DARK_NAVY = "#052A59"
 BLUE = "#0864C7"
-ORANGE = "#FF7900"
+ORANGE = "#F58A24"
 RED = "#F04438"
 GREEN = "#16A34A"
+AMBER = "#F59E0B"
 LIGHT_BG = "#F5F7FA"
 BORDER = "#D9E2EC"
 TEXT = "#24364B"
@@ -60,53 +55,115 @@ ISSUE_ICON = data_uri(ASSET_DIR / "icon_issue.svg")
 st.markdown(
     f"""
 <style>
-:root {{ --navy:{NAVY}; --blue:{BLUE}; --orange:{ORANGE}; --red:{RED}; }}
 html, body, [class*="css"] {{ font-family:"Segoe UI", Arial, sans-serif; }}
 .stApp {{ background:{LIGHT_BG}; color:{TEXT}; }}
-.block-container {{ padding:1.0rem 1.35rem 0.7rem 1.35rem; max-width:1700px; }}
+.block-container {{ padding:1rem 1.35rem .7rem; max-width:1700px; }}
 header[data-testid="stHeader"] {{ height:0; background:transparent; }}
 [data-testid="stToolbar"], #MainMenu, footer {{ display:none !important; }}
-[data-testid="stSidebar"] {{ background:linear-gradient(180deg,{DARK_NAVY} 0%, {NAVY} 68%, #05244A 100%); border-right:none; }}
-[data-testid="stSidebar"] > div:first-child {{ padding-top:0; }}
+[data-testid="stSidebar"] {{
+    background:linear-gradient(180deg,{DARK_NAVY} 0%, {NAVY} 68%, #05244A 100%);
+    border-right:none;
+}}
 [data-testid="stSidebar"] * {{ color:white; }}
-[data-testid="stSidebar"] .stFileUploader section {{ background:rgba(255,255,255,.08); border:1px dashed rgba(255,255,255,.45); }}
-[data-testid="stSidebar"] .stFileUploader small {{ color:#D5E3F3; }}
-[data-testid="stSidebar"] div[data-baseweb="select"] > div,
-[data-testid="stSidebar"] div[data-baseweb="input"] {{ background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.34); }}
-[data-testid="stSidebar"] hr {{ border-color:rgba(255,255,255,.18); }}
-.sidebar-logo {{ background:#fff; margin:0 -1rem .75rem -1rem; padding:12px 22px 9px; text-align:center; border-radius:0 0 8px 0; }}
+.sidebar-logo {{
+    background:#fff; margin:0 -1rem .75rem; padding:12px 22px 9px;
+    text-align:center; border-radius:0 0 8px 0;
+}}
 .sidebar-logo img {{ max-width:180px; width:100%; }}
-.side-section {{ color:#BFD1E6; font-size:12px; font-weight:800; letter-spacing:.7px; margin:14px 0 3px; }}
+.side-section {{
+    color:#BFD1E6; font-size:12px; font-weight:800;
+    letter-spacing:.7px; margin:14px 0 3px;
+}}
 .side-tagline {{ margin-top:25px; font-size:16px; line-height:1.25; font-weight:600; }}
-.side-wave {{ height:8px; margin-top:12px; border-radius:9px; background:linear-gradient(165deg,transparent 0 20%,#0A78D8 21% 43%,transparent 44% 50%,#E33B35 51% 63%,transparent 64%); }}
-.top-ribbon {{ position:fixed; top:0; right:0; width:235px; height:72px; z-index:0; clip-path:polygon(37% 0,100% 0,100% 100%,0 100%); background:linear-gradient(122deg,transparent 0 22%,#1871BE 22% 38%,#73B7E2 38% 51%,#fff 51% 59%,#FF7A24 59% 75%,#EF3E36 75% 100%); opacity:.98; }}
-.dashboard-header {{ position:relative; z-index:1; display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:13px; padding-right:16px; }}
-.main-title {{ color:{NAVY}; font-size:29px; font-weight:850; letter-spacing:.2px; line-height:1.05; }}
+.side-wave {{
+    height:8px; margin-top:12px; border-radius:9px;
+    background:linear-gradient(165deg,transparent 0 20%,#0A78D8 21% 43%,
+    transparent 44% 50%,#E33B35 51% 63%,transparent 64%);
+}}
+.top-ribbon {{
+    position:fixed; top:0; right:0; width:235px; height:72px; z-index:0;
+    clip-path:polygon(37% 0,100% 0,100% 100%,0 100%);
+    background:linear-gradient(122deg,transparent 0 22%,#1871BE 22% 38%,
+    #73B7E2 38% 51%,#fff 51% 59%,#FF7A24 59% 75%,#EF3E36 75% 100%);
+}}
+.dashboard-header {{
+    position:relative; z-index:1; display:flex; justify-content:space-between;
+    align-items:flex-start; margin-bottom:13px; padding-right:16px;
+}}
+.main-title {{ color:{NAVY}; font-size:29px; font-weight:850; line-height:1.05; }}
 .sub-title {{ color:{MUTED}; font-size:14px; margin-top:7px; }}
-.report-time {{ color:{NAVY}; font-weight:700; font-size:12px; padding:5px 8px; margin-right:105px; white-space:nowrap; }}
-.filter-panel {{ background:white; border:1px solid {BORDER}; border-radius:10px; box-shadow:0 2px 8px rgba(31,54,79,.06); padding:5px 15px 10px; margin-bottom:14px; }}
-.filter-title {{ color:{NAVY}; font-size:14px; font-weight:800; margin:2px 0 3px; }}
-.kpi-card {{ background:white; border:1px solid {BORDER}; border-left:5px solid var(--accent); border-radius:10px; min-height:128px; padding:15px 18px; box-shadow:0 2px 9px rgba(31,54,79,.09); display:grid; grid-template-columns:76px 1fr; align-items:center; gap:10px; }}
-.kpi-icon {{ width:66px; height:66px; border-radius:50%; background:var(--soft); display:flex; align-items:center; justify-content:center; }}
+.report-time {{
+    color:{NAVY}; font-weight:700; font-size:12px;
+    padding:5px 8px; margin-right:105px; white-space:nowrap;
+}}
+.kpi-card {{
+    background:white; border:1px solid {BORDER}; border-left:5px solid var(--accent);
+    border-radius:10px; min-height:128px; padding:15px 18px;
+    box-shadow:0 2px 9px rgba(31,54,79,.09);
+    display:grid; grid-template-columns:76px 1fr; align-items:center; gap:10px;
+}}
+.kpi-icon {{
+    width:66px; height:66px; border-radius:50%; background:var(--soft);
+    display:flex; align-items:center; justify-content:center;
+}}
 .kpi-icon img {{ width:42px; height:42px; }}
-.kpi-label {{ color:var(--accent); font-weight:850; font-size:14px; text-align:center; text-transform:uppercase; }}
-.kpi-value {{ color:var(--accent); font-size:42px; font-weight:850; text-align:center; line-height:1.06; margin:5px 0; }}
+.kpi-label {{
+    color:var(--accent); font-weight:850; font-size:14px;
+    text-align:center; text-transform:uppercase;
+}}
+.kpi-value {{
+    color:var(--accent); font-size:42px; font-weight:850;
+    text-align:center; line-height:1.06; margin:5px 0;
+}}
 .kpi-note {{ color:#555; font-size:11.5px; text-align:center; }}
-.kpi-note b {{ color:{GREEN}; }}
-.panel {{ background:white; border:1px solid {BORDER}; border-radius:9px; box-shadow:0 2px 7px rgba(31,54,79,.07); padding:10px 11px 9px; height:100%; }}
-.panel-title {{ color:{NAVY}; font-size:14px; font-weight:850; border-left:5px solid {BLUE}; padding-left:7px; margin:1px 0 9px; text-transform:uppercase; }}
+.panel {{
+    background:white; border:1px solid {BORDER}; border-radius:9px;
+    box-shadow:0 2px 7px rgba(31,54,79,.07);
+    padding:10px 11px 9px; height:100%;
+}}
+.panel-title {{
+    color:{NAVY}; font-size:14px; font-weight:850;
+    border-left:5px solid {BLUE}; padding-left:7px;
+    margin:1px 0 9px; text-transform:uppercase;
+}}
 .panel-title.orange {{ border-left-color:{ORANGE}; }}
 table.yvf {{ width:100%; border-collapse:collapse; font-size:12px; }}
-table.yvf th {{ background:{NAVY}; color:white; text-align:center; padding:7px 6px; border:1px solid #7792B2; font-weight:700; }}
-table.yvf th.orange {{ background:{ORANGE}; border-color:#FFAD63; }}
-table.yvf td {{ padding:7px 7px; border:1px solid #E0E6ED; text-align:center; color:#26364A; background:#fff; }}
+table.yvf th {{
+    background:{NAVY}; color:white; text-align:center;
+    padding:7px 6px; border:1px solid #7792B2; font-weight:700;
+}}
+table.yvf th.orange {{ background:{ORANGE}; border-color:#FFB16D; }}
+table.yvf td {{
+    padding:7px; border:1px solid #E0E6ED;
+    text-align:center; color:#26364A; background:#fff;
+}}
 table.yvf td.left {{ text-align:left; }}
 table.yvf tr.total td {{ background:#EAF3FC; font-weight:850; color:{NAVY}; }}
 .empty {{ padding:25px; text-align:center; color:{MUTED}; font-size:12px; }}
-.footer-yvf {{ text-align:center; color:#566270; font-size:11px; margin-top:10px; border-top:1px solid #E7ECF1; padding:8px 0 0; }}
-.stDownloadButton button {{ width:100%; background:transparent; color:white; border:1px solid rgba(255,255,255,.55); }}
+.status-card {{ padding:4px 5px 2px; }}
+.status-row {{
+    display:grid; grid-template-columns:80px 1fr 95px;
+    gap:10px; align-items:center; margin:14px 4px;
+}}
+.status-name {{ font-size:12px; font-weight:800; color:#344054; }}
+.status-track {{ height:12px; background:#EEF2F6; border-radius:8px; overflow:hidden; }}
+.status-fill {{ height:100%; border-radius:8px; }}
+.status-value {{ text-align:right; font-size:12px; font-weight:800; color:{NAVY}; }}
+.status-summary {{
+    display:flex; justify-content:space-between; border-top:1px solid #E7ECF1;
+    margin-top:12px; padding-top:11px; font-size:12px;
+}}
+.status-summary b {{ color:{NAVY}; font-size:16px; }}
+.footer-yvf {{
+    text-align:center; color:#566270; font-size:11px;
+    margin-top:10px; border-top:1px solid #E7ECF1; padding:8px 0 0;
+}}
 [data-testid="stPlotlyChart"] {{ margin-top:-7px; }}
-@media(max-width:1050px) {{ .kpi-card{{grid-template-columns:1fr;}} .kpi-icon{{margin:auto;}} .report-time{{margin-right:0;}} }}
+@media(max-width:1050px) {{
+    .kpi-card{{grid-template-columns:1fr;}}
+    .kpi-icon{{margin:auto;}}
+    .report-time{{margin-right:0;}}
+}}
 </style>
 <div class="top-ribbon"></div>
 """,
@@ -117,12 +174,12 @@ table.yvf tr.total td {{ background:#EAF3FC; font-weight:850; color:{NAVY}; }}
 @st.cache_data(show_spinner=False)
 def load_excel(file_bytes: bytes) -> dict[str, pd.DataFrame]:
     xls = pd.ExcelFile(io.BytesIO(file_bytes))
-    result: dict[str, pd.DataFrame] = {}
+    result = {}
     for sheet in ["Data_Booking", "Data_SI", "Data_Issue", "Customer_Feedback"]:
-        if sheet in xls.sheet_names:
-            result[sheet] = pd.read_excel(xls, sheet_name=sheet).dropna(how="all")
-        else:
-            result[sheet] = pd.DataFrame()
+        result[sheet] = (
+            pd.read_excel(xls, sheet_name=sheet).dropna(how="all")
+            if sheet in xls.sheet_names else pd.DataFrame()
+        )
     return result
 
 
@@ -134,26 +191,41 @@ def esc(value: object) -> str:
     return html.escape("" if pd.isna(value) else str(value))
 
 
-def html_table(df: pd.DataFrame, total_row: bool = False, left: set[str] | None = None, orange_header: bool = False) -> str:
+def html_table(
+    df: pd.DataFrame,
+    total_row: bool = False,
+    left: set[str] | None = None,
+    orange_header: bool = False,
+) -> str:
     left = left or set()
     if df.empty:
         return '<div class="empty">Không có dữ liệu phù hợp với bộ lọc.</div>'
     hclass = ' class="orange"' if orange_header else ""
     heads = "".join(f"<th{hclass}>{esc(c)}</th>" for c in df.columns)
-    rows: list[str] = []
+    rows = []
     for i, (_, row) in enumerate(df.iterrows()):
         cls = "total" if total_row and i == len(df) - 1 else ""
-        cells = "".join(f'<td class="{"left" if col in left else ""}">{esc(row[col])}</td>' for col in df.columns)
+        cells = "".join(
+            f'<td class="{"left" if col in left else ""}">{esc(row[col])}</td>'
+            for col in df.columns
+        )
         rows.append(f'<tr class="{cls}">{cells}</tr>')
-    return f'<table class="yvf"><thead><tr>{heads}</tr></thead><tbody>{"".join(rows)}</tbody></table>'
+    return (
+        f'<table class="yvf"><thead><tr>{heads}</tr></thead>'
+        f'<tbody>{"".join(rows)}</tbody></table>'
+    )
 
 
-def apply_filters(df: pd.DataFrame, customers: list[str], modes: list[str], statuses: list[str], date_range) -> pd.DataFrame:
+def apply_filters(df, customers, modes, statuses, date_range):
     out = df.copy()
     if "Booking Date" in out.columns:
         out["Booking Date"] = pd.to_datetime(out["Booking Date"], errors="coerce")
         if date_range and len(date_range) == 2:
-            out = out[out["Booking Date"].between(pd.Timestamp(date_range[0]), pd.Timestamp(date_range[1]))]
+            out = out[
+                out["Booking Date"].between(
+                    pd.Timestamp(date_range[0]), pd.Timestamp(date_range[1])
+                )
+            ]
     if customers and "Customer" in out.columns:
         out = out[out["Customer"].astype(str).isin(customers)]
     if modes and "Mode" in out.columns:
@@ -163,15 +235,62 @@ def apply_filters(df: pd.DataFrame, customers: list[str], modes: list[str], stat
     return out
 
 
-def kpi(label: str, value: str, icon_uri: str, accent: str, soft: str, note: str) -> str:
-    return f'''<div class="kpi-card" style="--accent:{accent};--soft:{soft}">
+def kpi(label, value, icon_uri, accent, soft, note):
+    return f"""
+    <div class="kpi-card" style="--accent:{accent};--soft:{soft}">
       <div class="kpi-icon"><img src="{icon_uri}" alt=""></div>
-      <div><div class="kpi-label">{label}</div><div class="kpi-value">{value}</div><div class="kpi-note">{note}</div></div>
-    </div>'''
+      <div>
+        <div class="kpi-label">{label}</div>
+        <div class="kpi-value">{value}</div>
+        <div class="kpi-note">{note}</div>
+      </div>
+    </div>
+    """
+
+
+def status_overview_html(status_qty: dict[str, int]) -> str:
+    display_order = [
+        ("Normal", BLUE),
+        ("Slow", ORANGE),
+        ("Very Slow", RED),
+        ("Closed", GREEN),
+    ]
+    total = sum(status_qty.values())
+    rows = []
+    for name, color in display_order:
+        qty = int(status_qty.get(name, 0))
+        if qty == 0:
+            continue
+        pct = qty / total * 100 if total else 0
+        rows.append(
+            f"""
+            <div class="status-row">
+                <div class="status-name">{name}</div>
+                <div class="status-track">
+                    <div class="status-fill" style="width:{pct:.1f}%;background:{color};"></div>
+                </div>
+                <div class="status-value">{qty} ({pct:.0f}%)</div>
+            </div>
+            """
+        )
+    slow_qty = status_qty.get("Slow", 0) + status_qty.get("Very Slow", 0)
+    slow_rate = slow_qty / total * 100 if total else 0
+    return f"""
+    <div class="status-card">
+        {''.join(rows) if rows else '<div class="empty">Không có dữ liệu trạng thái.</div>'}
+        <div class="status-summary">
+            <span>Total Bookings<br><b>{total}</b></span>
+            <span style="text-align:right">Slow Rate<br><b>{slow_rate:.0f}%</b></span>
+        </div>
+    </div>
+    """
 
 
 with st.sidebar:
-    st.markdown(f'<div class="sidebar-logo"><img src="{LOGO_URI}" alt="Yusen Logistics"></div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="sidebar-logo"><img src="{LOGO_URI}" alt="Yusen Logistics"></div>',
+        unsafe_allow_html=True,
+    )
     page = option_menu(
         menu_title=None,
         options=[
@@ -196,14 +315,33 @@ with st.sidebar:
         styles={
             "container": {"padding": "0", "background-color": "transparent"},
             "icon": {"color": "white", "font-size": "18px"},
-            "nav-link": {"font-size": "14px", "text-align": "left", "margin": "4px 0", "padding": "11px 12px", "border-radius": "7px", "color": "white"},
-            "nav-link-selected": {"background-color": "#096BD5", "font-weight": "700"},
+            "nav-link": {
+                "font-size": "14px",
+                "text-align": "left",
+                "margin": "4px 0",
+                "padding": "11px 12px",
+                "border-radius": "7px",
+                "color": "white",
+            },
+            "nav-link-selected": {
+                "background-color": "#096BD5",
+                "font-weight": "700",
+            },
         },
     )
     st.markdown('<div class="side-section">DATA SOURCE</div>', unsafe_allow_html=True)
-    uploaded = st.file_uploader("Upload Excel", type=["xlsx"], label_visibility="collapsed")
+    uploaded = st.file_uploader(
+        "Upload Excel", type=["xlsx"], label_visibility="collapsed"
+    )
 
-file_bytes = uploaded.getvalue() if uploaded is not None else DATA_FILE.read_bytes()
+if uploaded is not None:
+    file_bytes = uploaded.getvalue()
+elif DATA_FILE.exists():
+    file_bytes = DATA_FILE.read_bytes()
+else:
+    st.error("Không tìm thấy file YVF_PowerBI_Ready.xlsx.")
+    st.stop()
+
 try:
     data = load_excel(file_bytes)
 except Exception as exc:
@@ -214,40 +352,79 @@ booking = data["Data_Booking"].copy()
 si = data["Data_SI"].copy()
 issues = data["Data_Issue"].copy()
 feedback = data["Customer_Feedback"].copy()
+
 for frame in (booking, si):
     if "Booking Date" in frame.columns:
         frame["Booking Date"] = pd.to_datetime(frame["Booking Date"], errors="coerce")
 
-all_dates = pd.concat([booking.get("Booking Date", pd.Series(dtype="datetime64[ns]")), si.get("Booking Date", pd.Series(dtype="datetime64[ns]"))]).dropna()
+all_dates = pd.concat(
+    [
+        booking.get("Booking Date", pd.Series(dtype="datetime64[ns]")),
+        si.get("Booking Date", pd.Series(dtype="datetime64[ns]")),
+    ]
+).dropna()
+
 today = datetime.today().date()
 min_date = all_dates.min().date() if not all_dates.empty else today
 max_date = all_dates.max().date() if not all_dates.empty else today
-customers = sorted(set(booking.get("Customer", pd.Series(dtype=str)).dropna().astype(str)) | set(si.get("Customer", pd.Series(dtype=str)).dropna().astype(str)))
-modes = sorted(set(booking.get("Mode", pd.Series(dtype=str)).dropna().astype(str)) | set(si.get("Mode", pd.Series(dtype=str)).dropna().astype(str)))
-statuses = sorted(set(booking.get("Status", pd.Series(dtype=str)).dropna().astype(str)) | set(si.get("Status", pd.Series(dtype=str)).dropna().astype(str)))
+
+customers = sorted(
+    set(booking.get("Customer", pd.Series(dtype=str)).dropna().astype(str))
+    | set(si.get("Customer", pd.Series(dtype=str)).dropna().astype(str))
+)
+modes = sorted(
+    set(booking.get("Mode", pd.Series(dtype=str)).dropna().astype(str))
+    | set(si.get("Mode", pd.Series(dtype=str)).dropna().astype(str))
+)
+statuses = sorted(
+    set(booking.get("Status", pd.Series(dtype=str)).dropna().astype(str))
+    | set(si.get("Status", pd.Series(dtype=str)).dropna().astype(str))
+)
 
 with st.sidebar:
     st.divider()
     st.markdown('<div class="side-section">FILTERS</div>', unsafe_allow_html=True)
-    date_range = st.date_input("Date Range (ETD)", value=(min_date, max_date), min_value=min_date, max_value=max_date, format="DD/MM/YYYY")
+    date_range = st.date_input(
+        "Date Range",
+        value=(min_date, max_date),
+        min_value=min_date,
+        max_value=max_date,
+        format="DD/MM/YYYY",
+    )
     selected_customers = st.multiselect("Customer", customers, placeholder="All")
     selected_modes = st.multiselect("Mode", modes, placeholder="All")
     selected_statuses = st.multiselect("Status", statuses, placeholder="All")
-    st.markdown('<div class="side-tagline">Together we<br>connect value</div><div class="side-wave"></div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="side-tagline">Together we<br>connect value</div>'
+        '<div class="side-wave"></div>',
+        unsafe_allow_html=True,
+    )
 
-booking_f = apply_filters(booking, selected_customers, selected_modes, selected_statuses, date_range)
-si_f = apply_filters(si, selected_customers, selected_modes, selected_statuses, date_range)
+booking_f = apply_filters(
+    booking, selected_customers, selected_modes, selected_statuses, date_range
+)
+si_f = apply_filters(
+    si, selected_customers, selected_modes, selected_statuses, date_range
+)
 
-st.markdown(f'''<div class="dashboard-header"><div><div class="main-title">YVF ADOPTION DASHBOARD – CS HAD</div>
-<div class="sub-title">Customer Adoption &amp; Usage Monitoring</div></div>
-<div class="report-time">▣&nbsp;&nbsp;{datetime.now():%d/%m/%Y %H:%M}</div></div>''', unsafe_allow_html=True)
+st.markdown(
+    f"""
+    <div class="dashboard-header">
+      <div>
+        <div class="main-title">YVF ADOPTION DASHBOARD – CS HAD</div>
+        <div class="sub-title">Customer Adoption &amp; Usage Monitoring</div>
+      </div>
+      <div class="report-time">▣&nbsp;&nbsp;Last refresh: {datetime.now():%d-%b-%Y %H:%M}</div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
-booking_total = int(safe_num(booking_f.get("Booking Qty", pd.Series(dtype=float))).sum())
+booking_total = int(
+    safe_num(booking_f.get("Booking Qty", pd.Series(dtype=float))).sum()
+)
 si_total = int(safe_num(si_f.get("SI Qty", pd.Series(dtype=float))).sum())
 
-# ------------------------------------------------------------------
-# Adoption KPIs
-# ------------------------------------------------------------------
 all_known_customers = sorted(
     set(booking.get("Customer", pd.Series(dtype=str)).dropna().astype(str))
     | set(si.get("Customer", pd.Series(dtype=str)).dropna().astype(str))
@@ -256,196 +433,231 @@ active_customers = sorted(
     set(booking_f.get("Customer", pd.Series(dtype=str)).dropna().astype(str))
     | set(si_f.get("Customer", pd.Series(dtype=str)).dropna().astype(str))
 )
-customer_adoption_rate = (
+adoption_rate = (
     len(active_customers) / len(all_known_customers) * 100
     if all_known_customers else 0
 )
 
-# If a Channel/Source column is added later, the KPI will calculate automatically.
-# With the current YVF-only source file, all booking records are treated as YVF bookings.
-channel_col = next(
-    (c for c in ["Booking Channel", "Channel", "Source", "Platform"] if c in booking_f.columns),
-    None,
-)
-if channel_col and not booking_f.empty:
-    booking_qty = safe_num(booking_f.get("Booking Qty", pd.Series(index=booking_f.index, dtype=float)))
-    via_yvf_mask = booking_f[channel_col].astype(str).str.contains("YVF", case=False, na=False)
-    yvf_booking_qty = float(booking_qty[via_yvf_mask].sum())
-    total_booking_qty = float(booking_qty.sum())
-    booking_via_yvf_rate = yvf_booking_qty / total_booking_qty * 100 if total_booking_qty else 0
-else:
-    booking_via_yvf_rate = 100.0 if booking_total else 0.0
-
-# ------------------------------------------------------------------
-# Separate user issues from enhancement requests
-# Notes/remarks from operational raw data are moved into the user issue view.
-# ------------------------------------------------------------------
 issue_rows = []
 for source_name, frame in [("Booking", booking_f), ("SI Submission", si_f)]:
-    if frame.empty:
-        continue
     for _, row in frame.iterrows():
-        system_issue = str(row.get("System Issue", "")).strip()
-        note = "" if pd.isna(row.get("Remark")) else str(row.get("Remark")).strip()
-        has_issue = system_issue.lower() in {"yes", "y", "true", "1"} or bool(note)
-        if has_issue:
+        system_issue = str(row.get("System Issue", "")).strip().lower()
+        remark = "" if pd.isna(row.get("Remark")) else str(row.get("Remark")).strip()
+        if system_issue in {"yes", "y", "true", "1"} or remark:
             issue_rows.append(
                 {
                     "Date": row.get("Booking Date", ""),
                     "Customer": row.get("Customer", ""),
                     "Module": source_name,
-                    "Issue": note or "System issue reported",
-                    "Note": note,
+                    "Issue": remark or "System issue reported",
                     "PIC": row.get("PIC", ""),
                     "Status": row.get("Status", ""),
                 }
             )
 
-user_issues = pd.DataFrame(
-    issue_rows,
-    columns=["Date", "Customer", "Module", "Issue", "Note", "PIC", "Status"],
-)
+user_issues = pd.DataFrame(issue_rows)
 if not user_issues.empty:
-    user_issues["Date"] = pd.to_datetime(user_issues["Date"], errors="coerce").dt.strftime("%d/%m/%Y")
+    user_issues["Date"] = pd.to_datetime(
+        user_issues["Date"], errors="coerce"
+    ).dt.strftime("%d/%m/%Y")
 
-enhancement_requests = issues.copy()
-if not enhancement_requests.empty:
-    enhancement_requests = enhancement_requests.rename(
-        columns={"Suggestion": "Enhancement Request"}
-    )
-
-issue_total = len(user_issues)
-enhancement_total = len(enhancement_requests)
+enhancement_requests = issues.rename(
+    columns={"Suggestion": "Enhancement Request"}
+).copy()
 
 if page == "Overview":
     c1, c2, c3, c4, c5 = st.columns(5)
-    with c1:
-        st.markdown(
-            kpi(
-                "CUSTOMER ADOPTION RATE",
-                f"{customer_adoption_rate:.0f}%",
-                BOOKING_ICON,
-                BLUE,
-                "#EAF3FC",
-                f"{len(active_customers)}/{len(all_known_customers)} customers",
-            ),
-            unsafe_allow_html=True,
-        )
-    with c2:
-        st.markdown(
-            kpi(
-                "ACTIVE CUSTOMERS",
-                f"{len(active_customers):,}",
-                BOOKING_ICON,
-                GREEN,
-                "#EAF8EF",
-                "Customers with activity",
-            ),
-            unsafe_allow_html=True,
-        )
-    with c3:
-        st.markdown(
-            kpi(
-                "BOOKING VIA YVF %",
-                f"{booking_via_yvf_rate:.0f}%",
-                BOOKING_ICON,
-                ORANGE,
-                "#FFF0E2",
-                f"{booking_total:,} bookings in scope",
-            ),
-            unsafe_allow_html=True,
-        )
-    with c4:
-        st.markdown(
-            kpi(
-                "YVF ENHANCEMENT REQUESTS",
-                f"{enhancement_total:,}",
-                SI_ICON,
-                NAVY,
-                "#EAF0F7",
-                "Improvement requests",
-            ),
-            unsafe_allow_html=True,
-        )
-    with c5:
-        st.markdown(
-            kpi(
-                "YVF USER ISSUES",
-                f"{issue_total:,}",
-                ISSUE_ICON,
-                RED,
-                "#FDE9E7",
-                "Reported user issues",
-            ),
-            unsafe_allow_html=True,
-        )
-    st.write("")
+    cards = [
+        (
+            c1, "CUSTOMER ADOPTION RATE", f"{adoption_rate:.0f}%",
+            BOOKING_ICON, BLUE, "#EAF3FC",
+            f"{len(active_customers)}/{len(all_known_customers)} customers"
+        ),
+        (
+            c2, "ACTIVE CUSTOMERS", str(len(active_customers)),
+            BOOKING_ICON, GREEN, "#EAF8EF", "Customers with activity"
+        ),
+        (
+            c3, "BOOKING VIA YVF %", "100%" if booking_total else "0%",
+            BOOKING_ICON, ORANGE, "#FFF0E2",
+            f"{booking_total} bookings in scope"
+        ),
+        (
+            c4, "YVF ENHANCEMENT REQUESTS", str(len(enhancement_requests)),
+            SI_ICON, NAVY, "#EAF0F7", "Improvement requests"
+        ),
+        (
+            c5, "YVF USER ISSUES", str(len(user_issues)),
+            ISSUE_ICON, RED, "#FDE9E7", "Reported user issues"
+        ),
+    ]
+    for col, *args in cards:
+        with col:
+            st.markdown(kpi(*args), unsafe_allow_html=True)
 
+    st.write("")
     left_col, right_col = st.columns([1.08, .92])
+
     with left_col:
-        cols = ["Customer", "Mode", "Total Booking", "Normal", "Slow", "Closed"]
-        summary = pd.DataFrame(columns=cols)
+        summary = pd.DataFrame(
+            columns=["Customer", "Mode", "Total Booking", "Normal", "Slow", "Closed"]
+        )
         if not booking_f.empty:
-            work = booking_f.copy(); work["Booking Qty"] = safe_num(work.get("Booking Qty", pd.Series(index=work.index, dtype=float)))
+            work = booking_f.copy()
+            work["Booking Qty"] = safe_num(work["Booking Qty"])
             rows = []
-            for (customer, mode), g in work.groupby(["Customer", "Mode"], dropna=False):
-                status = g.get("Status", pd.Series(index=g.index, dtype=str)).astype(str).str.lower()
-                rows.append({"Customer":customer,"Mode":mode,"Total Booking":int(g["Booking Qty"].sum()),"Normal":int(g.loc[status.eq("normal"),"Booking Qty"].sum()),"Slow":int(g.loc[status.eq("slow"),"Booking Qty"].sum()),"Closed":int(g.loc[status.eq("closed"),"Booking Qty"].sum())})
+            for (customer, mode), g in work.groupby(
+                ["Customer", "Mode"], dropna=False
+            ):
+                status = g["Status"].astype(str).str.lower()
+                rows.append(
+                    {
+                        "Customer": customer,
+                        "Mode": mode,
+                        "Total Booking": int(g["Booking Qty"].sum()),
+                        "Normal": int(g.loc[status.eq("normal"), "Booking Qty"].sum()),
+                        "Slow": int(
+                            g.loc[status.isin(["slow", "very slow"]), "Booking Qty"].sum()
+                        ),
+                        "Closed": int(g.loc[status.eq("closed"), "Booking Qty"].sum()),
+                    }
+                )
             summary = pd.DataFrame(rows)
-            total = {"Customer":"TOTAL","Mode":"","Total Booking":int(summary["Total Booking"].sum()),"Normal":int(summary["Normal"].sum()),"Slow":int(summary["Slow"].sum()),"Closed":int(summary["Closed"].sum())}
-            summary = pd.concat([summary, pd.DataFrame([total])], ignore_index=True)
-        st.markdown('<div class="panel"><div class="panel-title">BOOKING SUMMARY</div>'+html_table(summary, True)+'</div>', unsafe_allow_html=True)
+            total_row = {
+                "Customer": "TOTAL",
+                "Mode": "",
+                "Total Booking": int(summary["Total Booking"].sum()),
+                "Normal": int(summary["Normal"].sum()),
+                "Slow": int(summary["Slow"].sum()),
+                "Closed": int(summary["Closed"].sum()),
+            }
+            summary = pd.concat(
+                [summary, pd.DataFrame([total_row])], ignore_index=True
+            )
+
+        st.markdown(
+            '<div class="panel"><div class="panel-title">BOOKING SUMMARY</div>'
+            + html_table(summary, total_row=True)
+            + "</div>",
+            unsafe_allow_html=True,
+        )
 
     with right_col:
-        cols = ["Customer", "Total SI", "On-time", "Late", "On-time Rate"]
-        si_summary = pd.DataFrame(columns=cols)
+        si_summary = pd.DataFrame(
+            columns=["Customer", "Total SI", "On-time", "Late", "On-time Rate"]
+        )
         if not si_f.empty:
-            work = si_f.copy(); work["SI Qty"] = safe_num(work.get("SI Qty", pd.Series(index=work.index, dtype=float)))
-            rows=[]
+            work = si_f.copy()
+            work["SI Qty"] = safe_num(work["SI Qty"])
+            rows = []
             for customer, g in work.groupby("Customer", dropna=False):
-                total=int(g["SI Qty"].sum()); status=g.get("Status",pd.Series(index=g.index,dtype=str)).astype(str).str.lower(); ontime=int(g.loc[status.isin(["normal","on-time","ontime"]),"SI Qty"].sum()); late=total-ontime
-                rows.append({"Customer":customer,"Total SI":total,"On-time":ontime,"Late":late,"On-time Rate":f"{ontime/total*100:.1f}%" if total else "0.0%"})
-            si_summary=pd.DataFrame(rows); t=int(si_summary["Total SI"].sum()); o=int(si_summary["On-time"].sum())
-            si_summary=pd.concat([si_summary,pd.DataFrame([{"Customer":"TOTAL","Total SI":t,"On-time":o,"Late":int(si_summary["Late"].sum()),"On-time Rate":f"{o/t*100:.1f}%" if t else "0.0%"}])],ignore_index=True)
-        st.markdown('<div class="panel"><div class="panel-title">SI SUBMISSION SUMMARY</div>'+html_table(si_summary, True)+'</div>', unsafe_allow_html=True)
+                total = int(g["SI Qty"].sum())
+                status = g["Status"].astype(str).str.lower()
+                ontime = int(
+                    g.loc[status.isin(["normal", "on-time", "ontime"]), "SI Qty"].sum()
+                )
+                rows.append(
+                    {
+                        "Customer": customer,
+                        "Total SI": total,
+                        "On-time": ontime,
+                        "Late": total - ontime,
+                        "On-time Rate": f"{ontime / total * 100:.1f}%" if total else "0.0%",
+                    }
+                )
+            si_summary = pd.DataFrame(rows)
+            t = int(si_summary["Total SI"].sum())
+            o = int(si_summary["On-time"].sum())
+            si_summary = pd.concat(
+                [
+                    si_summary,
+                    pd.DataFrame(
+                        [{
+                            "Customer": "TOTAL",
+                            "Total SI": t,
+                            "On-time": o,
+                            "Late": int(si_summary["Late"].sum()),
+                            "On-time Rate": f"{o / t * 100:.1f}%" if t else "0.0%",
+                        }]
+                    ),
+                ],
+                ignore_index=True,
+            )
+
+        st.markdown(
+            '<div class="panel"><div class="panel-title">SI SUBMISSION SUMMARY</div>'
+            + html_table(si_summary, total_row=True)
+            + "</div>",
+            unsafe_allow_html=True,
+        )
 
     st.write("")
-    b1,b2,b3=st.columns([1.07,1,1.02])
+    b1, b2, b3 = st.columns([1.07, 1, 1.02])
+
     with b1:
         enhancement_cols = [
             c for c in ["Module", "Enhancement Request"]
             if c in enhancement_requests.columns
         ]
         enhancement_view = (
-            enhancement_requests[enhancement_cols].copy()
+            enhancement_requests[enhancement_cols]
             if enhancement_cols
             else pd.DataFrame(columns=["Module", "Enhancement Request"])
         )
         st.markdown(
             '<div class="panel"><div class="panel-title orange">'
-            'YVF ENHANCEMENT REQUESTS</div>'
+            "YVF ENHANCEMENT REQUESTS</div>"
             + html_table(
                 enhancement_view,
                 left=set(enhancement_view.columns),
                 orange_header=True,
             )
-            + '</div>',
+            + "</div>",
             unsafe_allow_html=True,
         )
+
     with b2:
-        if feedback.empty or "Feedback" not in feedback.columns: fb=pd.DataFrame(columns=["Feedback","Count"])
+        if feedback.empty or "Feedback" not in feedback.columns:
+            fb = pd.DataFrame(columns=["Feedback", "Count"])
         else:
-            fb=feedback.groupby("Feedback",as_index=False).size().rename(columns={"size":"Count"}); fb["Feedback"]="♡  "+fb["Feedback"].astype(str); fb=pd.concat([fb,pd.DataFrame([{"Feedback":"TOTAL","Count":int(fb["Count"].sum())}])],ignore_index=True)
-        st.markdown('<div class="panel"><div class="panel-title">CUSTOMER FEEDBACK</div>'+html_table(fb,True,{"Feedback"})+'</div>',unsafe_allow_html=True)
+            fb = (
+                feedback.groupby("Feedback", as_index=False)
+                .size()
+                .rename(columns={"size": "Count"})
+            )
+            fb["Feedback"] = fb["Feedback"].astype(str).apply(
+                lambda x: ("⚠  " if "chậm" in x.lower() or "đơ" in x.lower() else "✓  ") + x
+            )
+            fb = pd.concat(
+                [fb, pd.DataFrame([{"Feedback": "TOTAL", "Count": int(fb["Count"].sum())}])],
+                ignore_index=True,
+            )
+        st.markdown(
+            '<div class="panel"><div class="panel-title">CUSTOMER FEEDBACK</div>'
+            + html_table(fb, total_row=True, left={"Feedback"})
+            + "</div>",
+            unsafe_allow_html=True,
+        )
+
     with b3:
-        order=["Normal","Slow","Closed"]; qty={}
-        for status_name in order:
-            mask=booking_f.get("Status",pd.Series(index=booking_f.index,dtype=str)).astype(str).str.lower().eq(status_name.lower())
-            qty[status_name]=int(safe_num(booking_f.loc[mask,"Booking Qty"] if "Booking Qty" in booking_f else pd.Series(dtype=float)).sum())
-        vals=[qty[x] for x in order]; total=sum(vals)
-        fig=go.Figure(go.Pie(labels=order,values=vals,hole=.62,marker=dict(colors=[BLUE,ORANGE,RED]),textinfo="none",sort=False))
-        fig.update_layout(height=252,margin=dict(l=3,r=3,t=2,b=2),showlegend=True,legend=dict(orientation="v",x=.72,y=.74,font=dict(size=11)),paper_bgcolor="white",annotations=[dict(text=f"<b>{total}</b><br>Total",x=.29,y=.5,font_size=18,showarrow=False)])
-        st.markdown('<div class="panel"><div class="panel-title">STATUS OVERVIEW</div>',unsafe_allow_html=True); st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False}); st.markdown('</div>',unsafe_allow_html=True)
+        status_qty = {}
+        for status_name in ["Normal", "Slow", "Very Slow", "Closed"]:
+            mask = booking_f.get(
+                "Status", pd.Series(index=booking_f.index, dtype=str)
+            ).astype(str).str.lower().eq(status_name.lower())
+            status_qty[status_name] = int(
+                safe_num(
+                    booking_f.loc[mask, "Booking Qty"]
+                    if "Booking Qty" in booking_f.columns
+                    else pd.Series(dtype=float)
+                ).sum()
+            )
+        st.markdown(
+            '<div class="panel"><div class="panel-title">STATUS OVERVIEW</div>'
+            + status_overview_html(status_qty)
+            + "</div>",
+            unsafe_allow_html=True,
+        )
 
 elif page == "Booking":
     st.markdown(
@@ -463,61 +675,41 @@ elif page == "SI Submission":
 
 elif page == "YVF User Issues":
     st.markdown(
-        '<div class="panel"><div class="panel-title orange">'
-        'YVF USER ISSUES</div></div>',
+        '<div class="panel"><div class="panel-title orange">YVF USER ISSUES</div></div>',
         unsafe_allow_html=True,
     )
-    st.caption(
-        "Các ghi chú/Remark phát sinh trong dữ liệu Booking và SI "
-        "được tập hợp tại đây để theo dõi như YVF User Issues."
-    )
-    st.dataframe(
-        user_issues,
-        use_container_width=True,
-        hide_index=True,
-        height=620,
-    )
+    st.dataframe(user_issues, use_container_width=True, hide_index=True, height=620)
 
 elif page == "YVF Enhancement Requests":
     st.markdown(
-        '<div class="panel"><div class="panel-title">'
-        'YVF ENHANCEMENT REQUESTS</div></div>',
+        '<div class="panel"><div class="panel-title">YVF ENHANCEMENT REQUESTS</div></div>',
         unsafe_allow_html=True,
     )
     st.dataframe(
-        enhancement_requests,
-        use_container_width=True,
-        hide_index=True,
-        height=620,
+        enhancement_requests, use_container_width=True, hide_index=True, height=620
     )
 
 elif page == "Customer Feedback":
     st.markdown(
-        '<div class="panel"><div class="panel-title">'
-        'CUSTOMER FEEDBACK</div></div>',
+        '<div class="panel"><div class="panel-title">CUSTOMER FEEDBACK</div></div>',
         unsafe_allow_html=True,
     )
     st.dataframe(feedback, use_container_width=True, hide_index=True, height=620)
 
 else:
-    # Remark/Note columns are intentionally excluded from Raw Data because
-    # they are shown under YVF User Issues.
-    booking_raw = booking.drop(columns=["Remark"], errors="ignore")
-    si_raw = si.drop(columns=["Remark"], errors="ignore")
     raw_frames = {
-        "Data_Booking": booking_raw,
-        "Data_SI": si_raw,
+        "Data_Booking": booking.drop(columns=["Remark"], errors="ignore"),
+        "Data_SI": si.drop(columns=["Remark"], errors="ignore"),
         "Data_Issue": enhancement_requests,
         "Customer_Feedback": feedback,
     }
     tabs = st.tabs(list(raw_frames.keys()))
-    for tab, (name, frame) in zip(tabs, raw_frames.items()):
+    for tab, (_, frame) in zip(tabs, raw_frames.items()):
         with tab:
-            st.dataframe(
-                frame,
-                use_container_width=True,
-                hide_index=True,
-                height=570,
-            )
+            st.dataframe(frame, use_container_width=True, hide_index=True, height=570)
 
-st.markdown('<div class="footer-yvf">YVF Adoption Dashboard – CS HAD | Confidential &amp; Internal Use Only</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="footer-yvf">YVF Adoption Dashboard – CS HAD | '
+    "Confidential &amp; Internal Use Only</div>",
+    unsafe_allow_html=True,
+)
