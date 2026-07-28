@@ -451,7 +451,8 @@ enhancement_count = len(enhancement)
 if page == "1. Overview":
     show_title(
         "YVF Adoption Dashboard – CS HAD",
-        "Tổng quan quản trị: nhìn nhanh 10 giây để nắm tình hình triển khai YVF.",
+        "Executive Overview.",
+        "Key Performance Indicators.",
     )
 
     # Most important KPIs first
