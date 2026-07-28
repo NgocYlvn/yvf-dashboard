@@ -140,6 +140,20 @@ table.yvf td {{
 table.yvf td.left {{ text-align:left; }}
 table.yvf tr.total td {{ background:#EAF3FC; font-weight:850; color:{NAVY}; }}
 .empty {{ padding:25px; text-align:center; color:{MUTED}; font-size:12px; }}
+.status-card {{ padding:4px 5px 2px; }}
+.status-row {{
+    display:grid; grid-template-columns:80px 1fr 95px;
+    gap:10px; align-items:center; margin:14px 4px;
+}}
+.status-name {{ font-size:12px; font-weight:800; color:#344054; }}
+.status-track {{ height:12px; background:#EEF2F6; border-radius:8px; overflow:hidden; }}
+.status-fill {{ height:100%; border-radius:8px; }}
+.status-value {{ text-align:right; font-size:12px; font-weight:800; color:{NAVY}; }}
+.status-summary {{
+    display:flex; justify-content:space-between; border-top:1px solid #E7ECF1;
+    margin-top:12px; padding-top:11px; font-size:12px;
+}}
+.status-summary b {{ color:{NAVY}; font-size:16px; }}
 .footer-yvf {{
     text-align:center; color:#566270; font-size:11px;
     margin-top:10px; border-top:1px solid #E7ECF1; padding:8px 0 0;
@@ -235,19 +249,15 @@ def kpi(label, value, icon_uri, accent, soft, note):
 
 
 def status_overview_chart(status_qty: dict[str, int]) -> go.Figure:
-    """Create a stable Plotly horizontal status chart for Streamlit Cloud."""
     display_order = [
         ("Normal", BLUE),
         ("Slow", ORANGE),
         ("Very Slow", RED),
         ("Closed", GREEN),
     ]
-
-    labels = []
-    values = []
-    colors = []
     total = sum(int(status_qty.get(name, 0)) for name, _ in display_order)
 
+    labels, values, colors = [], [], []
     for name, color in display_order:
         qty = int(status_qty.get(name, 0))
         if qty > 0:
@@ -255,8 +265,9 @@ def status_overview_chart(status_qty: dict[str, int]) -> go.Figure:
             values.append(qty)
             colors.append(color)
 
+    fig = go.Figure()
+
     if not values:
-        fig = go.Figure()
         fig.add_annotation(
             text="No status data",
             x=0.5,
@@ -277,7 +288,7 @@ def status_overview_chart(status_qty: dict[str, int]) -> go.Figure:
     percentages = [(v / total * 100) if total else 0 for v in values]
     custom_text = [f"{v} ({p:.0f}%)" for v, p in zip(values, percentages)]
 
-    fig = go.Figure(
+    fig.add_trace(
         go.Bar(
             x=percentages,
             y=labels,
@@ -286,10 +297,13 @@ def status_overview_chart(status_qty: dict[str, int]) -> go.Figure:
             text=custom_text,
             textposition="outside",
             cliponaxis=False,
-            hovertemplate="<b>%{y}</b><br>Qty: %{customdata[0]}<br>Rate: %{x:.1f}%<extra></extra>",
             customdata=[[v] for v in values],
+            hovertemplate="<b>%{y}</b><br>Qty: %{customdata[0]}<br>Rate: %{x:.1f}%<extra></extra>",
         )
     )
+
+    slow_qty = int(status_qty.get("Slow", 0)) + int(status_qty.get("Very Slow", 0))
+    slow_rate = (slow_qty / total * 100) if total else 0
 
     fig.update_layout(
         height=235,
@@ -298,13 +312,7 @@ def status_overview_chart(status_qty: dict[str, int]) -> go.Figure:
         plot_bgcolor="white",
         showlegend=False,
         bargap=0.48,
-        xaxis=dict(
-            range=[0, 110],
-            showgrid=False,
-            zeroline=False,
-            showticklabels=False,
-            title=None,
-        ),
+        xaxis=dict(range=[0, 110], visible=False),
         yaxis=dict(
             autorange="reversed",
             showgrid=False,
@@ -313,9 +321,6 @@ def status_overview_chart(status_qty: dict[str, int]) -> go.Figure:
         ),
         font=dict(family="Segoe UI, Arial, sans-serif", color=TEXT),
     )
-
-    slow_qty = int(status_qty.get("Slow", 0)) + int(status_qty.get("Very Slow", 0))
-    slow_rate = (slow_qty / total * 100) if total else 0
 
     fig.add_annotation(
         x=0,
@@ -338,6 +343,40 @@ def status_overview_chart(status_qty: dict[str, int]) -> go.Figure:
         font=dict(size=12, color=NAVY),
     )
     return fig
+
+
+def dataframe_to_excel_bytes(df: pd.DataFrame, sheet_name: str = "Data") -> bytes:
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name=sheet_name[:31])
+    return output.getvalue()
+
+
+def detail_toolbar(df: pd.DataFrame, key: str, filename: str, sheet_name: str) -> pd.DataFrame:
+    left, right = st.columns([3, 1])
+    with left:
+        search_text = st.text_input(
+            "Search",
+            placeholder="Nhập từ khóa để tìm trong bảng...",
+            key=f"search_{key}",
+        )
+    with right:
+        st.download_button(
+            "⬇ Download Excel",
+            data=dataframe_to_excel_bytes(df, sheet_name),
+            file_name=filename,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+            key=f"download_{key}",
+        )
+
+    if not search_text:
+        return df
+
+    mask = df.astype(str).apply(
+        lambda col: col.str.contains(search_text, case=False, na=False)
+    ).any(axis=1)
+    return df.loc[mask].copy()
 
 
 with st.sidebar:
@@ -541,8 +580,8 @@ if page == "Overview":
             SI_ICON, NAVY, "#EAF0F7", "Improvement requests"
         ),
         (
-            c5, "YVF USER ISSUES", str(len(user_issues)),
-            ISSUE_ICON, RED, "#FDE9E7", "Reported user issues"
+            c5, "ISSUE REPORTS", str(len(issues)),
+            ISSUE_ICON, RED, "#FDE9E7", "Issue reports submitted"
         ),
     ]
     for col, *args in cards:
@@ -722,29 +761,57 @@ elif page == "Booking":
         '<div class="panel"><div class="panel-title">BOOKING DETAIL</div></div>',
         unsafe_allow_html=True,
     )
-    st.dataframe(booking_f, use_container_width=True, hide_index=True, height=620)
+    booking_view = detail_toolbar(
+        booking_f,
+        key="booking",
+        filename="YVF_Booking_Detail.xlsx",
+        sheet_name="Booking Detail",
+    )
+    st.caption(f"Showing {len(booking_view):,} / {len(booking_f):,} rows")
+    st.dataframe(booking_view, use_container_width=True, hide_index=True, height=620)
 
 elif page == "SI Submission":
     st.markdown(
-        '<div class="panel"><div class="panel-title">SI SUBMISSION</div></div>',
+        '<div class="panel"><div class="panel-title">SI SUBMISSION DETAIL</div></div>',
         unsafe_allow_html=True,
     )
-    st.dataframe(si_f, use_container_width=True, hide_index=True, height=620)
+    si_view = detail_toolbar(
+        si_f,
+        key="si",
+        filename="YVF_SI_Submission_Detail.xlsx",
+        sheet_name="SI Submission",
+    )
+    st.caption(f"Showing {len(si_view):,} / {len(si_f):,} rows")
+    st.dataframe(si_view, use_container_width=True, hide_index=True, height=620)
 
 elif page == "YVF User Issues":
     st.markdown(
-        '<div class="panel"><div class="panel-title orange">YVF USER ISSUES</div></div>',
+        '<div class="panel"><div class="panel-title orange">ISSUE REPORTS</div></div>',
         unsafe_allow_html=True,
     )
-    st.dataframe(user_issues, use_container_width=True, hide_index=True, height=620)
+    issue_view = detail_toolbar(
+        issues,
+        key="issues",
+        filename="YVF_Issue_Reports.xlsx",
+        sheet_name="Issue Reports",
+    )
+    st.caption(f"Showing {len(issue_view):,} / {len(issues):,} rows")
+    st.dataframe(issue_view, use_container_width=True, hide_index=True, height=620)
 
 elif page == "YVF Enhancement Requests":
     st.markdown(
         '<div class="panel"><div class="panel-title">YVF ENHANCEMENT REQUESTS</div></div>',
         unsafe_allow_html=True,
     )
+    enhancement_view = detail_toolbar(
+        enhancement_requests,
+        key="enhancement",
+        filename="YVF_Enhancement_Requests.xlsx",
+        sheet_name="Enhancement Requests",
+    )
+    st.caption(f"Showing {len(enhancement_view):,} / {len(enhancement_requests):,} rows")
     st.dataframe(
-        enhancement_requests, use_container_width=True, hide_index=True, height=620
+        enhancement_view, use_container_width=True, hide_index=True, height=620
     )
 
 elif page == "Customer Feedback":
@@ -752,19 +819,38 @@ elif page == "Customer Feedback":
         '<div class="panel"><div class="panel-title">CUSTOMER FEEDBACK</div></div>',
         unsafe_allow_html=True,
     )
-    st.dataframe(feedback, use_container_width=True, hide_index=True, height=620)
+    feedback_view = detail_toolbar(
+        feedback,
+        key="feedback",
+        filename="YVF_Customer_Feedback.xlsx",
+        sheet_name="Customer Feedback",
+    )
+    st.caption(f"Showing {len(feedback_view):,} / {len(feedback):,} rows")
+    st.dataframe(feedback_view, use_container_width=True, hide_index=True, height=620)
 
 else:
     raw_frames = {
-        "Data_Booking": booking.drop(columns=["Remark"], errors="ignore"),
-        "Data_SI": si.drop(columns=["Remark"], errors="ignore"),
-        "Data_Issue": enhancement_requests,
+        "Data_Booking": booking,
+        "Data_SI": si,
+        "Data_Issue": issues,
         "Customer_Feedback": feedback,
     }
     tabs = st.tabs(list(raw_frames.keys()))
-    for tab, (_, frame) in zip(tabs, raw_frames.items()):
+    for tab, (sheet_name, frame) in zip(tabs, raw_frames.items()):
         with tab:
-            st.dataframe(frame, use_container_width=True, hide_index=True, height=570)
+            raw_view = detail_toolbar(
+                frame,
+                key=f"raw_{sheet_name}",
+                filename=f"{sheet_name}.xlsx",
+                sheet_name=sheet_name,
+            )
+            st.caption(f"Showing {len(raw_view):,} / {len(frame):,} rows")
+            st.dataframe(
+                raw_view,
+                use_container_width=True,
+                hide_index=True,
+                height=570,
+            )
 
 st.markdown(
     '<div class="footer-yvf">YVF Adoption Dashboard – CS HAD | '
