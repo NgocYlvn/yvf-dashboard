@@ -140,20 +140,6 @@ table.yvf td {{
 table.yvf td.left {{ text-align:left; }}
 table.yvf tr.total td {{ background:#EAF3FC; font-weight:850; color:{NAVY}; }}
 .empty {{ padding:25px; text-align:center; color:{MUTED}; font-size:12px; }}
-.status-card {{ padding:4px 5px 2px; }}
-.status-row {{
-    display:grid; grid-template-columns:80px 1fr 95px;
-    gap:10px; align-items:center; margin:14px 4px;
-}}
-.status-name {{ font-size:12px; font-weight:800; color:#344054; }}
-.status-track {{ height:12px; background:#EEF2F6; border-radius:8px; overflow:hidden; }}
-.status-fill {{ height:100%; border-radius:8px; }}
-.status-value {{ text-align:right; font-size:12px; font-weight:800; color:{NAVY}; }}
-.status-summary {{
-    display:flex; justify-content:space-between; border-top:1px solid #E7ECF1;
-    margin-top:12px; padding-top:11px; font-size:12px;
-}}
-.status-summary b {{ color:{NAVY}; font-size:16px; }}
 .footer-yvf {{
     text-align:center; color:#566270; font-size:11px;
     margin-top:10px; border-top:1px solid #E7ECF1; padding:8px 0 0;
@@ -248,42 +234,110 @@ def kpi(label, value, icon_uri, accent, soft, note):
     """
 
 
-def status_overview_html(status_qty: dict[str, int]) -> str:
+def status_overview_chart(status_qty: dict[str, int]) -> go.Figure:
+    """Create a stable Plotly horizontal status chart for Streamlit Cloud."""
     display_order = [
         ("Normal", BLUE),
         ("Slow", ORANGE),
         ("Very Slow", RED),
         ("Closed", GREEN),
     ]
-    total = sum(status_qty.values())
-    rows = []
+
+    labels = []
+    values = []
+    colors = []
+    total = sum(int(status_qty.get(name, 0)) for name, _ in display_order)
+
     for name, color in display_order:
         qty = int(status_qty.get(name, 0))
-        if qty == 0:
-            continue
-        pct = qty / total * 100 if total else 0
-        rows.append(
-            f"""
-            <div class="status-row">
-                <div class="status-name">{name}</div>
-                <div class="status-track">
-                    <div class="status-fill" style="width:{pct:.1f}%;background:{color};"></div>
-                </div>
-                <div class="status-value">{qty} ({pct:.0f}%)</div>
-            </div>
-            """
+        if qty > 0:
+            labels.append(name)
+            values.append(qty)
+            colors.append(color)
+
+    if not values:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="No status data",
+            x=0.5,
+            y=0.5,
+            showarrow=False,
+            font=dict(size=14, color=MUTED),
         )
-    slow_qty = status_qty.get("Slow", 0) + status_qty.get("Very Slow", 0)
-    slow_rate = slow_qty / total * 100 if total else 0
-    return f"""
-    <div class="status-card">
-        {''.join(rows) if rows else '<div class="empty">Không có dữ liệu trạng thái.</div>'}
-        <div class="status-summary">
-            <span>Total Bookings<br><b>{total}</b></span>
-            <span style="text-align:right">Slow Rate<br><b>{slow_rate:.0f}%</b></span>
-        </div>
-    </div>
-    """
+        fig.update_layout(
+            height=235,
+            margin=dict(l=10, r=10, t=10, b=10),
+            paper_bgcolor="white",
+            plot_bgcolor="white",
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False),
+        )
+        return fig
+
+    percentages = [(v / total * 100) if total else 0 for v in values]
+    custom_text = [f"{v} ({p:.0f}%)" for v, p in zip(values, percentages)]
+
+    fig = go.Figure(
+        go.Bar(
+            x=percentages,
+            y=labels,
+            orientation="h",
+            marker_color=colors,
+            text=custom_text,
+            textposition="outside",
+            cliponaxis=False,
+            hovertemplate="<b>%{y}</b><br>Qty: %{customdata[0]}<br>Rate: %{x:.1f}%<extra></extra>",
+            customdata=[[v] for v in values],
+        )
+    )
+
+    fig.update_layout(
+        height=235,
+        margin=dict(l=15, r=70, t=8, b=30),
+        paper_bgcolor="white",
+        plot_bgcolor="white",
+        showlegend=False,
+        bargap=0.48,
+        xaxis=dict(
+            range=[0, 110],
+            showgrid=False,
+            zeroline=False,
+            showticklabels=False,
+            title=None,
+        ),
+        yaxis=dict(
+            autorange="reversed",
+            showgrid=False,
+            tickfont=dict(size=12, color=TEXT),
+            title=None,
+        ),
+        font=dict(family="Segoe UI, Arial, sans-serif", color=TEXT),
+    )
+
+    slow_qty = int(status_qty.get("Slow", 0)) + int(status_qty.get("Very Slow", 0))
+    slow_rate = (slow_qty / total * 100) if total else 0
+
+    fig.add_annotation(
+        x=0,
+        y=-0.22,
+        xref="paper",
+        yref="paper",
+        text=f"<b>Total Bookings:</b> {total}",
+        showarrow=False,
+        xanchor="left",
+        font=dict(size=12, color=NAVY),
+    )
+    fig.add_annotation(
+        x=1,
+        y=-0.22,
+        xref="paper",
+        yref="paper",
+        text=f"<b>Slow Rate:</b> {slow_rate:.0f}%",
+        showarrow=False,
+        xanchor="right",
+        font=dict(size=12, color=NAVY),
+    )
+    return fig
 
 
 with st.sidebar:
@@ -653,11 +707,15 @@ if page == "Overview":
                 ).sum()
             )
         st.markdown(
-            '<div class="panel"><div class="panel-title">STATUS OVERVIEW</div>'
-            + status_overview_html(status_qty)
-            + "</div>",
+            '<div class="panel"><div class="panel-title">STATUS OVERVIEW</div>',
             unsafe_allow_html=True,
         )
+        st.plotly_chart(
+            status_overview_chart(status_qty),
+            use_container_width=True,
+            config={"displayModeBar": False},
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
 
 elif page == "Booking":
     st.markdown(
