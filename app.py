@@ -385,7 +385,6 @@ page = st.sidebar.radio(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.caption("Dashboard nội bộ CS HAD – Không sử dụng logo công ty.")
 
 
 # =========================================================
