@@ -19,7 +19,35 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+st.markdown("""
+<style>
 
+/* Ẩn header */
+header[data-testid="stHeader"]{
+    display:none;
+}
+
+/* Ẩn khoảng trắng phía trên */
+.block-container{
+    padding-top:1rem;
+}
+
+/* Nếu muốn sát hẳn mép trên */
+[data-testid="stAppViewContainer"]{
+    margin-top:0;
+}
+
+/* Ẩn menu góc phải nếu cần */
+#MainMenu{
+    visibility:hidden;
+}
+
+footer{
+    visibility:hidden;
+}
+
+</style>
+""", unsafe_allow_html=True)
 # =========================================================
 # UI STYLE
 # =========================================================
