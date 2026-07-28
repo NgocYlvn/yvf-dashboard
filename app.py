@@ -22,10 +22,16 @@ st.set_page_config(
 st.markdown("""
 <style>
 
-/* Ẩn header */
-header[data-testid="stHeader"]{
-    display:none;
+/* Chỉ ẩn menu và footer */
+#MainMenu {
+    visibility: hidden;
 }
+
+footer {
+    visibility: hidden;
+}
+
+/* KHÔNG ẩn header */
 
 /* Ẩn khoảng trắng phía trên */
 .block-container{
