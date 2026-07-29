@@ -17,6 +17,36 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+st.markdown("""
+<style>
+
+/* Ẩn thanh header của Streamlit */
+header[data-testid="stHeader"]{
+    display:none;
+}
+
+/* Ẩn menu */
+#MainMenu{
+    visibility:hidden;
+}
+
+/* Ẩn footer */
+footer{
+    visibility:hidden;
+}
+
+/* Đưa Dashboard sát lên trên */
+.block-container{
+    padding-top:0.4rem;
+}
+
+/* Loại bỏ khoảng trắng phía trên */
+[data-testid="stAppViewContainer"]{
+    margin-top:0rem;
+}
+
+</style>
+""", unsafe_allow_html=True)
 
 DEFAULT_FILE = Path("YVF_Adoption_Dashboard_CS_HAD.xlsm")
 
@@ -394,7 +424,6 @@ page = st.sidebar.radio(
     label_visibility="collapsed",
 )
 st.sidebar.markdown("---")
-st.sidebar.caption("Adoption Rate = Active Customers ÷ Eligible Customers")
 
 
 if page == "1. Overview":
