@@ -381,8 +381,7 @@ implemented_proposals = (
 feedback_type = get_text(feedback, ["Type", "Feedback Type"])
 negative_feedback = int(normalize_lower(feedback_type).eq("negative").sum())
 
-st.sidebar.markdown("## YVF Dashboard")
-st.sidebar.caption("CS HAD · Version 4")
+st.sidebar.markdown("## YVF Dashboard - CS HAD")
 page = st.sidebar.radio(
     "Navigation",
     [
