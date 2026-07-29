@@ -463,13 +463,13 @@ if page == "1. Overview":
         )
     with col2:
         kpi_card(
-            "Adoption Rate",
+            "Customer Adoption Rate",
             format_percent(adoption_rate),
-            "Tỷ lệ khách hàng đang sử dụng YVF",
+            "Percentage of customers actively using YVF",
         )
     with col3:
         kpi_card(
-            "Booking Actual YTD",
+            "Actual Bookings (YTD)",
             format_number(actual_ytd),
             f"Target năm: {format_number(year_target)}",
         )
@@ -477,7 +477,7 @@ if page == "1. Overview":
         kpi_card(
             "Target Achievement",
             format_percent(target_achievement),
-            "Actual YTD / Target năm",
+            "Actual YTD vs. Annual Target",
         )
 
     st.write("")
@@ -487,23 +487,23 @@ if page == "1. Overview":
         kpi_card(
             "Booking This Month",
             format_number(actual_this_month),
-            "Sản lượng tháng hiện tại",
+            "Current Month Booking Volume",
         )
     with col6:
         kpi_card(
             "Avg. Processing Time",
             f"{avg_processing_time:.1f} min",
-            "Thời gian xử lý booking trung bình",
+            "Average booking processing time",
         )
     with col7:
         kpi_card(
-            "User Issue Reports",
+            "User Issues",
             format_number(issue_count),
-            "Issue ghi nhận từ dữ liệu booking",
+            "Issues identified during the YVF booking process",
         )
     with col8:
         kpi_card(
-            "Enhancement Requests",
+            "Improvement Proposals",
             format_number(enhancement_count),
             "Đề xuất cải tiến đang được theo dõi",
         )
@@ -926,11 +926,11 @@ elif page == "4. User Issues":
 
 
 # =========================================================
-# PAGE 5: ENHANCEMENT REQUESTS
+# PAGE 5: IMPROVEMENT PROPOSALS
 # =========================================================
 else:
     show_title(
-        "Enhancement Requests",
+        "Improvement Proposals",
         "Danh sách đề xuất cải tiến từ Customers hoặc CS.",
     )
 
