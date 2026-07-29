@@ -428,9 +428,8 @@ st.sidebar.markdown("---")
 
 if page == "1. Overview":
     show_title(
-        "YVF Adoption Dashboard – CS HAD",
-        "Executive overview of customer adoption, booking performance, user issues, and improvement proposals.",
-    )
+        "YVF ADOPTION DASHBOARD – CS HAD",
+          )
 
     cols = st.columns(4)
     with cols[0]:
