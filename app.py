@@ -251,6 +251,14 @@ def load_excel(file_bytes: bytes) -> dict[str, pd.DataFrame]:
     return result
 
 
+
+
+def get_file_bytes() -> bytes | None:
+    """Đọc file Excel mặc định trong cùng thư mục với app.py."""
+    if DEFAULT_FILE.exists():
+        return DEFAULT_FILE.read_bytes()
+    return None
+
 def prepare_data(raw: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     booking = raw["booking"].copy()
     customer = raw["customer"].copy()
@@ -336,8 +344,8 @@ file_bytes = get_file_bytes()
 
 if file_bytes is None:
     st.error(
-        "Không tìm thấy file dữ liệu. Hãy upload file Excel ở thanh bên trái "
-        "hoặc đặt file YVF_Adoption_Dashboard_CS_HAD.xlsx cùng thư mục với app.py."
+        "Không tìm thấy file YVF_Adoption_Dashboard_CS_HAD.xlsx. "
+        "Hãy đặt file Excel này cùng thư mục với app.py."
     )
     st.stop()
 
