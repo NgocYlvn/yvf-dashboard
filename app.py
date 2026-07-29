@@ -14,10 +14,10 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for UI styling
+# Custom CSS cho giao diện
 st.markdown("""
 <style>
-    .main-header { font-size: 28px; font-weight: bold; color: #1E3A8A; margin-bottom: 20px; }
+    .main-header { font-size: 26px; font-weight: bold; color: #1E3A8A; margin-bottom: 20px; }
     .metric-card {
         background-color: #F8FAFC;
         border: 1px solid #E2E8F0;
@@ -26,8 +26,6 @@ st.markdown("""
         text-align: center;
         box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
-    .metric-value { font-size: 26px; font-weight: bold; color: #0F172A; }
-    .metric-label { font-size: 13px; color: #64748B; margin-bottom: 5px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -36,12 +34,19 @@ st.markdown("""
 # ---------------------------------------------------------
 @st.cache_data
 def load_data():
-    file_path = os.path.join("data", "YVF Booking & On board status.xlsx")
-    
-    # 1. Read YVF Status
+    # Tự động tìm file Excel ở thư mục hiện tại hoặc trong thư mục 'data'
+    file_name = "YVF Booking & On board status.xlsx"
+    if os.path.exists(file_name):
+        file_path = file_name
+    elif os.path.exists(os.path.join("data", file_name)):
+        file_path = os.path.join("data", file_name)
+    else:
+        st.error(f"❌ Không tìm thấy file dữ liệu '{file_name}'. Vui lòng kiểm tra lại thư mục lưu trữ!")
+        st.stop()
+
+    # 1. Sheet: YVF Status
     df_status = pd.read_excel(file_path, sheet_name="YVF Status", header=None)
     
-    # Extract KPI row values (Row index 3 in Python)
     eligible = int(df_status.iloc[3, 0]) if pd.notnull(df_status.iloc[3, 0]) else 0
     total_hbl = int(df_status.iloc[3, 1]) if pd.notnull(df_status.iloc[3, 1]) else 0
     onboarded = int(df_status.iloc[3, 2]) if pd.notnull(df_status.iloc[3, 2]) else 0
@@ -65,11 +70,11 @@ def load_data():
         "booking_achievement": (total_bookings / booking_target) if booking_target > 0 else 0.0
     }
     
-    # 2. Read Target YVF Customer
+    # 2. Sheet: Target YVF customer
     df_target = pd.read_excel(file_path, sheet_name="Target YVF customer", skiprows=2)
     df_target = df_target.dropna(subset=['Customer']).copy()
     
-    # Calculate monthly volumes from different shipment modes
+    # Tính tổng volume hàng tháng từ các shipment modes (AE, FCL, LCL)
     ae_apr = df_target.iloc[:, 2].fillna(0)
     ae_may = df_target.iloc[:, 3].fillna(0)
     ae_jun = df_target.iloc[:, 4].fillna(0)
@@ -86,13 +91,12 @@ def load_data():
     df_target['May_Vol'] = ae_may + fcl_may + lcl_may
     df_target['Jun_Vol'] = ae_jun + fcl_jun + lcl_jun
     df_target['Total_Volume'] = df_target.iloc[:, 11].fillna(df_target['Apr_Vol'] + df_target['May_Vol'] + df_target['Jun_Vol'])
-    df_target['Status'] = df_target.iloc[:, 12].fillna('Unknown')
+    df_target['Status'] = df_target.iloc[:, 12].fillna('Not yet')
     
-    # 3. Read Onboard customer list
+    # 3. Sheet: Onboard customer list
     df_onboard = pd.read_excel(file_path, sheet_name="Onboard customer list", skiprows=1)
     df_onboard = df_onboard.dropna(subset=['Shipper Company Name']).copy()
     
-    # Function to classify customer status
     def classify_status(row):
         booking_status = str(row['Booking status\n(number of booking on YVF per month or per year)'])
         if '100%' in booking_status:
@@ -133,7 +137,7 @@ kpis, df_target, df_onboard, df_issues, df_proposals = load_data()
 # ---------------------------------------------------------
 st.sidebar.title("🚢 YVF Navigation")
 menu = st.sidebar.radio(
-    "Go to",
+    "Danh mục Dashboard",
     [
         "1. Overview",
         "2. Customer Adoption",
@@ -154,34 +158,25 @@ if menu == "1. Overview":
     st.markdown('<div class="main-header">📌 Executive Summary & Overview</div>', unsafe_allow_html=True)
     
     col1, col2, col3, col4, col5 = st.columns(5)
-    with col1:
-        st.metric("Eligible Customers", kpis["eligible"])
-    with col2:
-        st.metric("Onboarded Customers", kpis["onboarded"])
-    with col3:
-        st.metric("Active Customers", kpis["active_customers"])
-    with col4:
-        st.metric("Adoption Rate", f"{kpis['adoption_rate']:.1%}")
-    with col5:
-        st.metric("Booking Achievement", f"{kpis['booking_achievement']:.1%}")
+    col1.metric("Eligible Customers", kpis["eligible"])
+    col2.metric("Onboarded Customers", kpis["onboarded"])
+    col3.metric("Active Customers", kpis["active_customers"])
+    col4.metric("Adoption Rate", f"{kpis['adoption_rate']:.1%}")
+    col5.metric("Booking Achievement", f"{kpis['booking_achievement']:.1%}")
         
     st.markdown("---")
     
     c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        st.metric("Pending Onboard", kpis["pending_onboard"])
-    with c2:
-        st.metric("Onboarding Rate", f"{kpis['onboarding_rate']:.1%}")
-    with c3:
-        st.metric("Total Bookings via YVF", kpis["total_bookings"])
-    with c4:
-        st.metric("Avg Booking Time", f"{kpis['avg_booking_time']} min/bk")
+    c1.metric("Pending Onboard", kpis["pending_onboard"])
+    c2.metric("Onboarding Rate", f"{kpis['onboarding_rate']:.1%}")
+    c3.metric("Total Bookings via YVF", kpis["total_bookings"])
+    c4.metric("Avg Booking Time", f"{kpis['avg_booking_time']} min/bk")
 
     st.markdown("---")
     
     col_left, col_right = st.columns(2)
     with col_left:
-        st.subheader("🎯 Adoption Target vs Actual")
+        st.subheader("🎯 Customer Adoption Breakdown")
         fig_donut = px.pie(
             names=["Active", "Onboarded (Inactive)", "Not Onboarded"],
             values=[kpis["active_customers"], kpis["onboarded"] - kpis["active_customers"], kpis["eligible"] - kpis["onboarded"]],
@@ -191,24 +186,24 @@ if menu == "1. Overview":
         st.plotly_chart(fig_donut, use_container_width=True)
         
     with col_right:
-        st.subheader("📈 Monthly Target Achievement")
+        st.subheader("📈 Monthly Booking Target Achievement")
         fig_gauge = go.Figure(go.Indicator(
             mode="gauge+number+delta",
             value=kpis["total_bookings"],
             domain={'x': [0, 1], 'y': [0, 1]},
-            title={'text': "YVF Bookings vs Target (150/month)"},
+            title={'text': f"Actual ({kpis['total_bookings']}) vs Target ({kpis['booking_target']})"},
             gauge={
-                'axis': {'range': [0, 150]},
+                'axis': {'range': [0, kpis['booking_target']]},
                 'bar': {'color': "#2563EB"},
                 'steps': [
-                    {'range': [0, 50], 'color': "#FEE2E2"},
-                    {'range': [50, 100], 'color': "#FEF3C7"},
-                    {'range': [100, 150], 'color': "#D1FAE5"}
+                    {'range': [0, kpis['booking_target']*0.3], 'color': "#FEE2E2"},
+                    {'range': [kpis['booking_target']*0.3, kpis['booking_target']*0.7], 'color': "#FEF3C7"},
+                    {'range': [kpis['booking_target']*0.7, kpis['booking_target']], 'color': "#D1FAE5"}
                 ],
                 'threshold': {
                     'line': {'color': "red", 'width': 4},
                     'thickness': 0.75,
-                    'value': 150
+                    'value': kpis['booking_target']
                 }
             }
         ))
@@ -274,7 +269,7 @@ elif menu == "3. Booking Performance":
             "Month": ["Apr", "May", "Jun"],
             "Volume": [df_target['Apr_Vol'].sum(), df_target['May_Vol'].sum(), df_target['Jun_Vol'].sum()]
         })
-        fig_line = px.line(monthly_vol, x="Month", y="Volume", markers=True, title="Export Shipment Trend")
+        fig_line = px.line(monthly_vol, x="Month", y="Volume", markers=True, title="Export Shipment Volume Trend")
         st.plotly_chart(fig_line, use_container_width=True)
         
     with c2:
@@ -309,8 +304,8 @@ elif menu == "4. User Issues":
         fig_stat = px.bar(df_issues['Status'].value_counts().reset_index(), x="Status", y="count", color="Status")
         st.plotly_chart(fig_stat, use_container_width=True)
 
-    st.subheader("📄 Issue Details")
-    st.table(df_issues)
+    st.subheader("📄 Issue Details Table")
+    st.dataframe(df_issues, use_container_width=True)
 
 # ---------------------------------------------------------
 # 5. IMPROVEMENT PROPOSALS PAGE
@@ -339,7 +334,7 @@ elif menu == "5. Improvement Proposals":
 elif menu == "6. Customer Details":
     st.markdown('<div class="main-header">🔍 Target Customer Master List</div>', unsafe_allow_html=True)
     
-    search = st.text_input("🔍 Search Customer Name:", "")
+    search = st.text_input("🔍 Tìm kiếm tên khách hàng:", "")
     filtered_df = df_target if not search else df_target[df_target['Customer'].str.contains(search, case=False, na=False)]
 
     st.dataframe(
