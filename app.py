@@ -329,22 +329,6 @@ def prepare_data(raw: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     }
 
 
-def get_file_bytes() -> bytes | None:
-    uploaded_file = st.sidebar.file_uploader(
-        "Upload dữ liệu Excel",
-        type=["xlsx"],
-        help="File cần có các sheet Data_Booking, Data_CustomerActive, Data_Issue và Customer_Feedback.",
-    )
-
-    if uploaded_file is not None:
-        return uploaded_file.getvalue()
-
-    if DEFAULT_FILE.exists():
-        return DEFAULT_FILE.read_bytes()
-
-    return None
-
-
 # =========================================================
 # LOAD DATA
 # =========================================================
