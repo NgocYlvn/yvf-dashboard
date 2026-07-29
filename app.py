@@ -12,7 +12,7 @@ import streamlit as st
 
 
 st.set_page_config(
-    page_title="YVF Adoption Dashboard – CS HAD",
+    page_title="YVF ADOPTION DASHBOARD – CS HAD",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
